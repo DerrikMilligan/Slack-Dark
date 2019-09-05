@@ -1,13 +1,8 @@
 # Slack-Dark
-Taken from the ArchLinux package.
+Taken initially from the [ArchLinux package](https://aur.archlinux.org/packages/slack-desktop-dark/).
 
-# Font
-*Make sure you Download and Install* this font and install it [Muli Font](https://www.fontsquirrel.com/fonts/download/muli)
+Now they're using [this new repo](https://github.com/caiceA/slack-raw) for the styling. That repo had a better install script, which I found modifications that should make it work on any OS.
 
-https://aur.archlinux.org/packages/slack-desktop-dark/
-
-They now use this css file which we're using too
-
-https://github.com/caiceA/slack-raw
-
-On your mac it should just work, need to change path for Windows and whatnot.
+# Prerequisites
+ - Download and install this font: [Muli Font](https://www.fontsquirrel.com/fonts/download/muli)
+ - Make sure the node `asar` package is installed `npm install -g asar`
