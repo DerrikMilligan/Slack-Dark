@@ -1,27 +1,54 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
+JS="
+// First make sure the wrapper app is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Fetch our CSS in parallel ahead of time
+  const cssPath = 'https://raw.githubusercontent.com/caiceA/slack-raw/master/slack-4';
+  let cssPromise = fetch(cssPath).then((response) => response.text());
 
-pushd "$DIR" > /dev/null
-  if ! [ $(git rev-parse HEAD) = $(git ls-remote $(git rev-parse --abbrev-ref @{u} | sed 's/\// /g') | cut -f1) ]; then
-    echo "Repository is not up to date! Updating now..."
-    if ! git pull; then
-      echo "Failed to update repository! Exiting!"
-      exit 2
-    fi
-    echo "Restarting script..."
-  fi  
+  let customCustomCSS = \`
+   :root {
+      /* Modify these to change your theme colors: */
+      --primary: #61AFEF;
+      --text: #ABB2BF;
+      --background: #282C34;
+      --background-elevated: #3B4048;
+   }
+   \`;
+
+  // Insert a style tag into the wrapper view
+  cssPromise.then((css) => {
+    let s = document.createElement('style');
+    s.type = 'text/css';
+    s.innerHTML = css  + customCustomCSS;
+    document.head.appendChild(s);
+  });
+});"
+
+OSX_SLACK_RESOURCES_DIR="/Applications/Slack.app/Contents/Resources"
+LINUX_SLACK_RESOURCES_DIR="/usr/lib/slack/resources"
+
+if [[ -d $OSX_SLACK_RESOURCES_DIR ]]; then SLACK_RESOURCES_DIR=$OSX_SLACK_RESOURCES_DIR; fi
+if [[ -d $LINUX_SLACK_RESOURCES_DIR ]]; then SLACK_RESOURCES_DIR=$LINUX_SLACK_RESOURCES_DIR; fi
+if [[ -z $SLACK_RESOURCES_DIR ]]; then
+  # Assume on windows if the linux and osx paths failed.
+  # Get Windows environment info:
+  WIN_HOME_RAW="$(cmd.exe /c "<nul set /p=%UserProfile%" 2>/dev/null)"
+  WIN_HOME="$(wslpath $WIN_HOME_RAW)"
+
+  # Find latest version installed
+  APP_VER="$(ls -dt ${WIN_HOME}/AppData/Local/slack/app*/)"
+  IFS='/', read -a APP_VER_ARR <<< "$APP_VER"
   
-  echo "Patching Slack..."
+  SLACK_RESOURCES_DIR="${WIN_HOME}/AppData/Local/slack/${APP_VER_ARR[8]}/resources"
+fi
 
-  # Insert the black theme directly into ssb-interop.js
-  lineno=$(sed -n '/HERE/=' "$DIR/darkify_slack.js")
-  file="/Applications/Slack.app/Contents/Resources/app.asar.unpacked/src/static/ssb-interop.js"
-  head -n $((lineno - 1)) "$DIR/darkify_slack.js" >> $file
-  cat black.css >> $file
-  tail -n +$((lineno + 1)) "$DIR/darkify_slack.js" >> $file
+SLACK_FILE_PATH="${SLACK_RESOURCES_DIR}/app.asar.unpacked/dist/ssb-interop.bundle.js"
 
-  echo "Patched successfully!"
-popd > /dev/null
+echo "Adding Dark Theme Code to Slack... "
+echo "This script requires sudo privileges." && echo "You'll need to provide your password."
 
-
+sudo npx asar extract ${SLACK_RESOURCES_DIR}/app.asar ${SLACK_RESOURCES_DIR}/app.asar.unpacked
+sudo tee -a "${SLACK_FILE_PATH}" > /dev/null <<< "$JS"
+sudo npx asar pack ${SLACK_RESOURCES_DIR}/app.asar.unpacked ${SLACK_RESOURCES_DIR}/app.asar
