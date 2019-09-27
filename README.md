@@ -9,3 +9,8 @@ Now they're using [this new repo](https://github.com/caiceA/slack-raw) for the s
 
 # Installation
  - After finishing the prerequisites, simply run `patch_slack.bash` *(It'll ask for your password as it's using sudo.)*
+
+# Simple Installation
+```
+bash <<<"$(curl https://raw.githubusercontent.com/DerrikMilligan/Slack-Dark/master/patch_slack.bash)"
+```
